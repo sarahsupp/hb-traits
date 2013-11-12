@@ -4,25 +4,47 @@
 library(ggplot2)
 library(lattice)
 library(GGally)
+library(ggmap)
 
 #import the data
 wd = "C:\\Users\\sarah\\Dropbox\\ActiveResearchProjects\\HummingbirdTraits\\"
 setwd(wd)
 
-traits = read.table("Morphology.txt", header = T, sep=",", na.strings=9999)
+traits = read.table("Morphology.txt", header = T, sep = ",", na.strings=9999)
 refs = read.table("References.txt", header = T, sep = ",")
-species = read.table("AouSaccHumList.txt", header = T, sep=",")
+species = read.table("AouSaccHumList.txt", header = T, sep = ",")
+geo = read.table("GeoRefs.txt", header = T, sep = ",")
+sites = read.csv("Sites_BW.csv", header = T, sep = ",")
+sitexspp = read.csv("SiteXspp_BW.csv", header = T, sep = ",")
+  sitexspp= sitexspp[-c(1:3), ] #don't need the elevation data
 
 #find and subset only Gary Stiles' data (probably the most trusted data)
 Stiles = subset(refs, Title == "Gary Stiles Personal database")
-GS_ID = index$RefID
-
+GS_ID = Stiles$RefID
 traits = subset(traits, ReferenceID == GS_ID)
+  traits[traits == 9999] <- NA
 
-#replace 9999 with NA
-traits[traits == 9999] <- NA
+#Use only Colombian assemblages
+colgeo = subset(geo, Country == "Colombia") #369 sites
+colsites = subset(sites, Country == "Colombia") #124 sites (what did Bed clean/remove?)
+  sitenames = unique(colsites$Community)
 
-#plot stuff
+#include only sites that are in Colombia
+for (iRow in 1:nrow(sitexspp)){
+  if (sitexspp[iRow,1] %in% sitenames){
+    sitexspp$use = 1
+  }
+  else { sitexspp$use = 0}
+}
+
+sitexspp2 = sitexspp[,which(sitexspp$X %in% colsites$Community)]
+
+#-----------plot stuff
+##map of Colombian Sites
+colombia = get_map(location = "Bogota", zoom = 7, maptype = "terrain", color = "bw")
+ggmap(colombia) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), data = colgeo)
+
+ggmap(colombia) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), data = colsites)
 
 ##weight
 peso <- ggplot(traits, aes(x=Peso))
@@ -84,7 +106,7 @@ footwidth + geom_histogram(binwidth=0.5) + theme_bw()  +
   labs(x="foot extension (mm)", y="Count")
 
 tarslength <- ggplot(traits, aes(TarsL))
-tarslength + geom_histogram(binwidth=0.5) + theme() +
+tarslength + geom_histogram(binwidth=0.5) + theme_bw() +
   labs(x = "tarsus length (mm)", y="Count")
 
 #pairs plot of all the data
