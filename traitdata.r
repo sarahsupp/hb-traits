@@ -5,9 +5,10 @@ library(ggplot2)
 library(lattice)
 library(GGally)
 library(ggmap)
+library(vegan)
 
 #import the data
-wd = "C:\\Users\\sarah\\Dropbox\\ActiveResearchProjects\\HummingbirdTraits\\"
+wd = "C:\\Users\\sarah\\Dropbox\\ActiveResearchProjects\\HummingbirdTraits\\data\\"
 setwd(wd)
 
 traits = read.table("Morphology.txt", header = T, sep = ",", na.strings=9999)
@@ -26,25 +27,37 @@ traits = subset(traits, ReferenceID == GS_ID)
 
 #Use only Colombian assemblages
 colgeo = subset(geo, Country == "Colombia") #369 sites
-colsites = subset(sites, Country == "Colombia") #124 sites (what did Bed clean/remove?)
+colsites = subset(sites, Country == "Colombia") #124 sites (what did Ben clean/remove?)
   sitenames = unique(colsites$Community)
 
 #include only sites that are in Colombia
+use = as.numeric()
+s = as.numeric()
+
 for (iRow in 1:nrow(sitexspp)){
   if (sitexspp[iRow,1] %in% sitenames){
-    sitexspp$use = 1
+    use[iRow] = 1
+    pres = as.numeric(sitexspp[iRow,2:134])
+    s[iRow] = specnumber(pres)
   }
-  else { sitexspp$use = 0}
+  else { 
+    use[iRow] = 0
+    s[iRow] = 0
+  }
 }
+sitexspp$use = use
+sitexspp$s = s
 
-sitexspp2 = sitexspp[,which(sitexspp$X %in% colsites$Community)]
+#remove sites that are not cleaned & in Colombia
+sitexspp = sitexspp[which(sitexspp$use == 1),]
+
 
 #-----------plot stuff
 ##map of Colombian Sites
 colombia = get_map(location = "Bogota", zoom = 7, maptype = "terrain", color = "bw")
 ggmap(colombia) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), data = colgeo)
 
-ggmap(colombia) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), data = colsites)
+ggmap(colombia) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), data = colsites, cex = 4)
 
 ##weight
 peso <- ggplot(traits, aes(x=Peso))
