@@ -1,9 +1,9 @@
 # code to clean and organize the hummingbird trait datasets to be used in the project
 # note that this dataset only includes information for male hummingbirds
 
+#library(lattice)
+#library(GGally)
 library(ggplot2)
-library(lattice)
-library(GGally)
 library(ggmap)
 library(vegan)
 
@@ -63,9 +63,11 @@ ggmap(colombia) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), data = colsites
 bogosites = colsites[which(colsites$LongDecDeg < -73  & colsites$LongDecDeg > -75 & 
                              colsites$LatDecDeg > 3 & colsites$LatDecDeg < 5.5),]
 
-bogota = get_map(location = "Bogota", zoom = 9, maptype = "terrain", color = "bw")
+bogota = get_map(location = "Bogota", zoom = 8, maptype = "terrain", color = "bw")
 
-ggmap(bogota) + geom_point(aes(x= ))
+sitemap = ggmap(bogota) + geom_point(aes(x = LongDecDeg, y = LatDecDeg, col = Biome, size = Richness), 
+                           data = bogosites) + element_blank() + scale_fill_brewer(palette=1)
+
 
 ##weight
 peso <- ggplot(traits, aes(x=Peso))
