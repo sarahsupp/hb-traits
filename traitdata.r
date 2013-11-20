@@ -59,6 +59,14 @@ ggmap(colombia) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), data = colgeo)
 
 ggmap(colombia) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), data = colsites, cex = 4)
 
+#Just sites near Bogota
+bogosites = colsites[which(colsites$LongDecDeg < -73  & colsites$LongDecDeg > -75 & 
+                             colsites$LatDecDeg > 3 & colsites$LatDecDeg < 5.5),]
+
+bogota = get_map(location = "Bogota", zoom = 9, maptype = "terrain", color = "bw")
+
+ggmap(bogota) + geom_point(aes(x= ))
+
 ##weight
 peso <- ggplot(traits, aes(x=Peso))
 peso + geom_histogram(binwidth=0.5) + theme_bw() + 
