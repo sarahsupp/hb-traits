@@ -155,6 +155,7 @@ species$spname_dot = paste(species$Genus, species$Species, sep = ".")
 
 #add species name to traits data
 sp = unique(traits$SpID)
+traits$spname=NA
 
 for (row in 1:nrow(traits)){
   id = traits[row, 2]
@@ -168,7 +169,7 @@ sitenames = unique(bogosites$Community)
 sitexspp = sitexspp[which(sitexspp$X %in% sitenames),]
 
 #make a new dataframe for the traits in all the sites and species
-commtraits = data.frame(comm="name", species="name", mass=0, billwidth=0, billlenth=0, wingchord=0,
+commtraits = data.frame(comm="name", species="name", mass=0, billwidth=0, billlength=0, wingchord=0,
                         wingarea=0, wingload=0, taillength=0, tarsuslength=0)
   levels(commtraits$comm) = unique(sitexspp$X)
   levels(commtraits$species) = names(sitexspp[,2:134])
@@ -191,8 +192,28 @@ for (row in 1:nrow(sitexspp)){
   }
 }
 
+commtraits$mass = as.numeric(commtraits$mass)
+commtraits$billwidth = as.numeric(commtraits$billwidth)
+commtraits$billlength = as.numeric(commtraits$billlength)
+commtraits$wingchord = as.numeric(commtraits$wingchord)
+commtraits$wingarea = as.numeric(commtraits$wingarea)
+commtraits$wingload = as.numeric(commtraits$wingload)
+commtraits$taillength = as.numeric(commtraits$taillength)
+commtraits$tarsuslength = as.numeric(commtraits$tarsuslength)
 
+#------------------------------------------
+#    Plot community comparison data
+#------------------------------------------
 
+m <- ggplot(commtraits, aes(x=comm, y = mass)) + geom_boxplot() + 
+  theme_bw() + theme(axis.text.x=element_text(angle=60, vjust=0.5))
 
+cols2plot=c("mass", "billwidth", "billlength", "wingchord", "wingarea", 
+            "wingload", "taillength", "tarsuslength")
+for (i in seq_along(cols2plot)){
+  print(ggplot(commtraits, aes_string(x="comm", y = cols2plot[i])) + geom_boxplot() + 
+   theme_bw() + theme(axis.text.x=element_text(angle=60, vjust=0.5)))
+}
 
+aes_string(cols_to_plot[i]
 
