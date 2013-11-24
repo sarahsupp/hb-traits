@@ -201,6 +201,8 @@ commtraits$wingload = as.numeric(commtraits$wingload)
 commtraits$taillength = as.numeric(commtraits$taillength)
 commtraits$tarsuslength = as.numeric(commtraits$tarsuslength)
 
+ct = aggregate(. ~ comm, data = commtraits, mean)
+
 #------------------------------------------
 #    Plot community comparison data
 #------------------------------------------
@@ -212,8 +214,20 @@ cols2plot=c("mass", "billwidth", "billlength", "wingchord", "wingarea",
             "wingload", "taillength", "tarsuslength")
 for (i in seq_along(cols2plot)){
   print(ggplot(commtraits, aes_string(x="comm", y = cols2plot[i])) + geom_boxplot() + 
-   theme_bw() + theme(axis.text.x=element_text(angle=60, vjust=0.5)))
+   theme_bw() + theme(axis.text.x=element_text(angle=60, vjust=0.5)
 }
 
-aes_string(cols_to_plot[i]
+ggplot(bogosites, aes(LongDecDeg, LatDecDeg)) + 
+  geom_point(aes(col=Biome, size = Richness)) + theme_bw() +
+  scale_colour_gradient(low = "blue", high = "indianred")
 
+cols2plot=c("ct$mass", "ct$billwidth", "ct$billlength", "ct$wingchord", "ct$wingarea", 
+            "ct$wingload", "ct$taillength", "ct$tarsuslength")
+for (i in seq_along(cols2plot)){
+  print(ggplot(bogosites,aes(LongDecDeg, LatDecDeg)) + 
+    geom_point(aes_string(col=cols2plot[i], size="Richness")) + theme_bw() +
+  scale_colour_gradient(low="lightgreen", high = "hotpink"))
+}
+
+ggplot(commtraits, aes(mass, wingchord)) + geom_point(aes(col = comm, size = 3)) + 
+  theme_bw() + stat_smooth(method = "lm", aes(group = comm, col = comm),alpha = 0.1)
