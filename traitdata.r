@@ -7,6 +7,7 @@ library(ggplot2)
 library(ggmap)
 library(vegan)
 library(data.table)
+library(reshape)
 
 #import the data
 #wd = "C:\\Users\\sarah\\Dropbox\\ActiveResearchProjects\\HummingbirdTraits\\data\\"
@@ -166,7 +167,31 @@ sitenames = unique(bogosites$Community)
 #remove sites that are not cleaned & in Colombia
 sitexspp = sitexspp[which(sitexspp$X %in% sitenames),]
 
-commtraits = data.frame(comm)
+#make a new dataframe for the traits in all the sites and species
+commtraits = data.frame(comm="name", species="name", mass=0, billwidth=0, billlenth=0, wingchord=0,
+                        wingarea=0, wingload=0, taillength=0, tarsuslength=0)
+  levels(commtraits$comm) = unique(sitexspp$X)
+  levels(commtraits$species) = names(sitexspp[,2:134])
+counter = 1
+
+for (row in 1:nrow(sitexspp)){
+  dat = sitexspp[row,c(1:134)]
+  dat2=melt(dat, id = "X")
+  dat3 = dat2[which(dat2$value == 1),]
+  names = dat3[,2]
+  for (n in 1:length(names)){
+    traitdat = traits[which(traits$spname == names[n]),c(6,7,8,9,17,15,18,20)]
+    vals = c()
+    for (t in 1:ncol(traitdat)){
+      vals = append(vals, mean(traitdat[,t]))
+    }
+    vec = c(as.character(dat[1,1]), as.character(names[n]), vals)
+    commtraits[counter,] = vec
+    counter = counter+1
+  }
+}
+
+
 
 
 
