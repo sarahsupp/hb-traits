@@ -6,10 +6,16 @@
 library(ggplot2)
 library(ggmap)
 library(vegan)
+library(data.table)
 
 #import the data
-wd = "C:\\Users\\sarah\\Dropbox\\ActiveResearchProjects\\HummingbirdTraits\\data\\"
+#wd = "C:\\Users\\sarah\\Dropbox\\ActiveResearchProjects\\HummingbirdTraits\\data\\"
+wd = "/Users/sarah/Desktop/Dropbox/ActiveResearchProjects/HummingbirdTraits/data"
 setwd(wd)
+
+#------------------------------------------
+#         Import and clean the data
+#------------------------------------------
 
 traits = read.table("Morphology.txt", header = T, sep = ",", na.strings=9999)
 refs = read.table("References.txt", header = T, sep = ",")
@@ -51,8 +57,9 @@ sitexspp$s = s
 #remove sites that are not cleaned & in Colombia
 sitexspp = sitexspp[which(sitexspp$use == 1),]
 
-
-#-----------plot stuff
+#------------------------------------------
+#        Map of Colombia and Bogota sites
+#------------------------------------------
 ##map of Colombian Sites
 colombia = get_map(location = "Bogota", zoom = 7, maptype = "terrain", color = "bw")
 ggmap(colombia) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), data = colgeo)
@@ -67,8 +74,11 @@ bogota = get_map(location = "Bogota", zoom = 8, maptype = "terrain", color = "bw
 
 sitemap = ggmap(bogota) + geom_point(aes(x = LongDecDeg, y = LatDecDeg, col = Biome, size = Richness), 
                            data = bogosites) + element_blank() + scale_fill_brewer(palette=1)
+sitemap
 
-
+#------------------------------------------
+#           Plot the trait data
+#------------------------------------------
 ##weight
 peso <- ggplot(traits, aes(x=Peso))
 peso + geom_histogram(binwidth=0.5) + theme_bw() + 
@@ -135,3 +145,29 @@ tarslength + geom_histogram(binwidth=0.5) + theme_bw() +
 #pairs plot of all the data
 par(mfrow = c(2,3))
 pairs(traits[,5:21])
+
+#------------------------------------------
+#    Link species, locality and trait data
+#------------------------------------------
+#add a column to species table that will match species name format in sitexspp table
+species$spname_dot = paste(species$Genus, species$Species, sep = ".")
+
+#add species name to traits data
+sp = unique(traits$SpID)
+
+for (row in 1:nrow(traits)){
+  id = traits[row, 2]
+  spdat = species[which(species$SpID == id), c(3,4)]
+  traits[row,]$spname = paste(spdat[1,1], spdat[1,2], sep = ".")   
+  }
+
+#keep only sites in sitexspp table that correspond to cleaned Bogota sites
+sitenames = unique(bogosites$Community)
+#remove sites that are not cleaned & in Colombia
+sitexspp = sitexspp[which(sitexspp$X %in% sitenames),]
+
+commtraits = data.frame(comm)
+
+
+
+
