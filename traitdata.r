@@ -6,12 +6,12 @@
 library(ggplot2)
 library(ggmap)
 library(vegan)
-library(data.table)
+#library(data.table)
 library(reshape)
 
 #import the data
-#wd = "C:\\Users\\sarah\\Dropbox\\ActiveResearchProjects\\HummingbirdTraits\\data\\"
-wd = "/Users/sarah/Desktop/Dropbox/ActiveResearchProjects/HummingbirdTraits/data"
+wd = "C:\\Users\\sarah\\Dropbox\\ActiveResearchProjects\\HummingbirdTraits\\Data\\"
+#wd = "/Users/sarah/Desktop/Dropbox/ActiveResearchProjects/HummingbirdTraits/data"
 setwd(wd)
 
 #------------------------------------------
@@ -65,84 +65,75 @@ sitexspp = sitexspp[which(sitexspp$use == 1),]
 colombia = get_map(location = "Bogota", zoom = 7, maptype = "terrain", color = "bw")
 ggmap(colombia) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), data = colgeo)
 
-ggmap(colombia) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), data = colsites, cex = 4)
+colombiasites = ggmap(colombia) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), data = colsites, cex = 4)
 
 #Just sites near Bogota
-bogosites = colsites[which(colsites$LongDecDeg < -73  & colsites$LongDecDeg > -75 & 
+bogosites = colsites[which(colsites$LongDecDeg < -73.5  & colsites$LongDecDeg > -75.25 & 
                              colsites$LatDecDeg > 3 & colsites$LatDecDeg < 5.5),]
 
 bogota = get_map(location = "Bogota", zoom = 8, maptype = "terrain", color = "bw")
 
 sitemap = ggmap(bogota) + geom_point(aes(x = LongDecDeg, y = LatDecDeg, col = Biome, size = Richness), 
                            data = bogosites) + element_blank() + scale_fill_brewer(palette=1)
-sitemap
+
+sitemap2 = ggmap(bogota) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), size = 5, 
+                                     data = bogosites) + element_blank() + scale_fill_brewer(palette=1)
+
+siterichness = ggplot(bogosites, aes(LongDecDeg, LatDecDeg)) + geom_point(aes(size = Richness))
+
 
 #------------------------------------------
 #           Plot the trait data
 #------------------------------------------
 ##weight
-peso <- ggplot(traits, aes(x=Peso))
-peso + geom_histogram(binwidth=0.5) + theme_bw() + 
+peso <- ggplot(traits, aes(x=Peso)) + geom_histogram(binwidth=0.5) + theme_bw() + 
   labs(x="Weight (g)", y = "Count")
 
 ##bill measurements
-billlen <- ggplot(traits, aes(x=ExpC))
-billlen + geom_histogram(binwidth = 1) + 
+billlen <- ggplot(traits, aes(x=ExpC)) + geom_histogram(binwidth = 1) + 
   theme_bw() + labs(x="Exposed Bill Length (mm)", y="Count") 
 
-billwidth <- ggplot(traits, aes(x=Acom))
-billwidth + geom_histogram(binwidth=0.5) + theme_bw() +
+billwidth <- ggplot(traits, aes(x=Acom)) + geom_histogram(binwidth=0.5) + theme_bw() +
   labs(x="Bill width(mm)", y = "count")
 
-billdepth <- ggplot(traits, aes(x=PrfP))
-billdepth + geom_histogram(binwidth=0.25) + theme_bw() +
+billdepth <- ggplot(traits, aes(x=PrfP)) + geom_histogram(binwidth=0.25) + theme_bw() +
   labs (x="Bill depth (mm)", y = "Count")
 
 #ignore TotC because it is well-predicted by ExpC, and ExpC is better predictor of flower use by hb
 
 ##wing measurements
-wingchord <- ggplot(traits, aes(x=AlCdo))
-wingchord + geom_histogram(binwidth=1) + theme_bw() +
+wingchord <- ggplot(traits, aes(x=AlCdo)) + geom_histogram(binwidth=1) + theme_bw() +
   labs(x="wing chord length (mm)", y = "Count")
 
-wingwidth <- ggplot(traits, aes(x=AlAnc))
-wingwidth + geom_histogram(binwidth=1) + theme_bw() +
-  labs(x="wing width (mm)", y = "Count")
+wingwidth <- ggplot(traits, aes(x=AlAnc))+ geom_histogram(binwidth=1) + theme_bw() +
+  labs(x="wing width (mm)", y = "Count") 
 
-winglength <- ggplot(traits, aes(x=AlLgo))
-winglength + geom_histogram(binwidth=1) + theme_bw() +
-  labs(x="wing length(mm)", y = "count") 
+winglength <- ggplot(traits, aes(x=AlLgo)) + geom_histogram(binwidth=1) + theme_bw() +
+  labs(x="wing length(mm)", y = "count")
 
-wingload <- ggplot(traits, aes(WiLo))
-wingload + geom_histogram(binwidth=0.05) + theme_bw() + 
+wingload <- ggplot(traits, aes(WiLo)) + geom_histogram(binwidth=0.05) + theme_bw() + 
   labs(x="wing load", y="Count")
 
-wingratio <- ggplot(traits, aes(Rasp))
-wingratio + geom_histogram(binwidth=0.25) + theme_bw() + 
+wingratio <- ggplot(traits, aes(Rasp)) + geom_histogram(binwidth=0.25) + theme_bw() + 
   labs(x="wing length / wing width", y="Count")
 
-wingtaper <- ggplot(traits, aes(Wtap))
-wingtaper + geom_histogram(binwidth=0.05) + theme_bw() +
+wingtaper <- ggplot(traits, aes(Wtap))  + geom_histogram(binwidth=0.05) + theme_bw() +
   labs(x="wing taper", y="Count")
 
-wingarea <- ggplot(traits, aes(AlArea))
-wingarea + geom_histogram(binwidth=1) + theme_bw() +
+wingarea <- ggplot(traits, aes(AlArea)) + geom_histogram(binwidth=1) + theme_bw() +
   labs(x="total wing area", y="count")
 
 ##tail traits
-taillength <- ggplot(traits, aes(ColaL))
-taillength + geom_histogram(binwidth=1) + theme_bw() + 
+taillength <- ggplot(traits, aes(ColaL)) + geom_histogram(binwidth=1) + theme_bw() + 
   labs(x="tail length(mm)", y="Count")
 
 ##foot traits
-footwidth <- ggplot(traits, aes(PataE))
-footwidth + geom_histogram(binwidth=0.5) + theme_bw()  +
-  labs(x="foot extension (mm)", y="Count")
+footwidth <- ggplot(traits, aes(PataE)) + geom_histogram(binwidth=0.5) + theme_bw()  +
+  labs(x="foot extension (mm)", y="Count") 
 
-tarslength <- ggplot(traits, aes(TarsL))
-tarslength + geom_histogram(binwidth=0.5) + theme_bw() +
+tarslength <- ggplot(traits, aes(TarsL)) + geom_histogram(binwidth=0.5) + theme_bw() +
   labs(x = "tarsus length (mm)", y="Count")
-
+ 
 #pairs plot of all the data
 par(mfrow = c(2,3))
 pairs(traits[,5:21])
@@ -169,29 +160,35 @@ sitenames = unique(bogosites$Community)
 sitexspp = sitexspp[which(sitexspp$X %in% sitenames),]
 
 #make a new dataframe for the traits in all the sites and species
-commtraits = data.frame(comm="name", species="name", mass=0, billwidth=0, billlength=0, wingchord=0,
+commtraits = data.frame(comm="name", biome="name", species="name", mass=0, billwidth=0, billlength=0, wingchord=0,
                         wingarea=0, wingload=0, taillength=0, tarsuslength=0)
   levels(commtraits$comm) = unique(sitexspp$X)
+  levels(commtraits$biome) = as.character(c(1:8))
   levels(commtraits$species) = names(sitexspp[,2:134])
 counter = 1
 
 for (row in 1:nrow(sitexspp)){
+  sitename = sitexspp[row,1]
+    biome = bogosites[which(bogosites$Community == sitename),8]
   dat = sitexspp[row,c(1:134)]
-  dat2=melt(dat, id = "X")
+    dat = cbind(dat, biome)
+  dat2=melt(dat, id = c("X", "biome"))
   dat3 = dat2[which(dat2$value == 1),]
-  names = dat3[,2]
+    names(dat3) = c("comm", "biome", "species", "presence")
+  names = dat3$species
   for (n in 1:length(names)){
     traitdat = traits[which(traits$spname == names[n]),c(6,7,8,9,17,15,18,20)]
     vals = c()
     for (t in 1:ncol(traitdat)){
-      vals = append(vals, mean(traitdat[,t]))
+      vals = append(vals, mean(traitdat[,t]))  #if a species appears more than once in traits, take the mean value
     }
-    vec = c(as.character(dat[1,1]), as.character(names[n]), vals)
+    vec = c(as.character(dat3$comm[1]), as.character(dat3$biome[1]), as.character(names[n]), vals)
     commtraits[counter,] = vec
     counter = counter+1
   }
 }
 
+commtraits$biome = as.numeric(commtraits$biome)
 commtraits$mass = as.numeric(commtraits$mass)
 commtraits$billwidth = as.numeric(commtraits$billwidth)
 commtraits$billlength = as.numeric(commtraits$billlength)
@@ -203,19 +200,23 @@ commtraits$tarsuslength = as.numeric(commtraits$tarsuslength)
 
 ct = aggregate(. ~ comm, data = commtraits, mean)
 
+
 #------------------------------------------
 #    Plot community comparison data
 #------------------------------------------
 
-m <- ggplot(commtraits, aes(x=comm, y = mass)) + geom_boxplot() + 
+mass_by_communities <- ggplot(commtraits, aes(x=comm, y = mass)) + geom_boxplot() + 
   theme_bw() + theme(axis.text.x=element_text(angle=60, vjust=0.5))
 
 cols2plot=c("mass", "billwidth", "billlength", "wingchord", "wingarea", 
             "wingload", "taillength", "tarsuslength")
 for (i in seq_along(cols2plot)){
-  print(ggplot(commtraits, aes_string(x="comm", y = cols2plot[i])) + geom_boxplot() + 
-   theme_bw() + theme(axis.text.x=element_text(angle=60, vjust=0.5)
+  print(ggplot(commtraits, aes_string(x="comm", y = cols2plot[i])) + geom_boxplot(aes(fill="gray20")) + 
+   theme_bw() + theme(text = element_text(size =20), axis.text.x=element_text(angle=60, vjust=0.5)))
 }
+
+theme(text = element_text(size=20),
+      axis.text.x = element_text(angle=90, vjust=1)) 
 
 ggplot(bogosites, aes(LongDecDeg, LatDecDeg)) + 
   geom_point(aes(col=Biome, size = Richness)) + theme_bw() +
