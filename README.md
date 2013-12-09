@@ -7,7 +7,7 @@ The code and data in this repository allow for the analyses and figures to be fu
 
 The project and code in this repository are still under development.
 
-**Requirements:** R 3.x, R packages `knitr`, `ggplot2`, and files containing functions specific to this code.
+**Requirements:** R 3.x, R packages `knitr`, `ggplot2`, `ggmap`, `reshape`, `data.table`, `vegan`, and files containing functions specific to this code.
 
 The analyses can be replicated by changing the working directory at the top of the file `.R` to the location on your computer where you have stored the `.R`, `.txt`, and `.csv` files. Questions about the code should be directed to SRS (sarah@weecology.org).
 
