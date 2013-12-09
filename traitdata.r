@@ -2,7 +2,7 @@
 # note that this dataset only includes information for male hummingbirds
 
 #library(lattice)
-#library(GGally)
+library(GGally)
 library(ggplot2)
 library(ggmap)
 library(vegan)
@@ -215,8 +215,6 @@ for (i in seq_along(cols2plot)){
    theme_bw() + theme(text = element_text(size =20), axis.text.x=element_text(angle=60, vjust=0.5)))
 }
 
-theme(text = element_text(size=20),
-      axis.text.x = element_text(angle=90, vjust=1)) 
 
 ggplot(bogosites, aes(LongDecDeg, LatDecDeg)) + 
   geom_point(aes(col=Biome, size = Richness)) + theme_bw() +
@@ -232,3 +230,40 @@ for (i in seq_along(cols2plot)){
 
 ggplot(commtraits, aes(mass, wingchord)) + geom_point(aes(col = comm, size = 3)) + 
   theme_bw() + stat_smooth(method = "lm", aes(group = comm, col = comm),alpha = 0.1)
+
+#how correlated are the traits?
+pairs(commtraits[,c(4:11)], pch = 19, cex.labels=2)
+
+## put histograms on the diagonal
+panel.hist <- function(x, ...)
+{
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(usr[1:2], 0, 1.5) )
+  h <- hist(x, plot = FALSE)
+  breaks <- h$breaks; nB <- length(breaks)
+  y <- h$counts; y <- y/max(y)
+  rect(breaks[-nB], 0, breaks[-1], y, col = "gray80", ...)
+}
+
+## put (absolute) correlations on the upper panels,
+## with size proportional to the correlations.
+panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
+{
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(0, 1, 0, 1))
+  r <- abs(cor(x, y))
+  txt <- format(c(r, 0.123456789), digits = digits)[1]
+  txt <- paste0(prefix, txt)
+  if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
+  text(0.5, 0.5, txt, cex = cex.cor * r)
+}
+
+commtraits$biome = as.factor(commtraits$biome)
+pairs(commtraits[,c(4:11)],cex = 1.5, pch = 19, bg = "gray20",
+      diag.panel = panel.hist, cex.labels = 1.5, font.labels = 2,
+ #     lower.panel = panel.smooth, upper.panel = panel.cor, 
+      bg = rainbow(8)[unclass(commtraits$biome)])
+
+#plot traits pairs, colored by biome ()
+alltraits = commtraits[complete.cases(commtraits),c(2,4:11)]
+ggpairs(alltraits, colour = "biome", alpha = 0.5)
