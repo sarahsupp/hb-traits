@@ -260,10 +260,10 @@ panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
 
 commtraits$biome = as.factor(commtraits$biome)
 pairs(commtraits[,c(4:11)],cex = 1.5, pch = 19, bg = "gray20",
-      diag.panel = panel.hist, cex.labels = 1.5, font.labels = 2,
+      diag.panel = panel.hist, cex.labels = 1.5, font.labels = 2)
  #     lower.panel = panel.smooth, upper.panel = panel.cor, 
-      bg = rainbow(8)[unclass(commtraits$biome)])
+ #     bg = rainbow(8)[unclass(commtraits$biome)])
 
 #plot traits pairs, colored by biome ()
-alltraits = commtraits[complete.cases(commtraits),c(2,4:11)]
+alltraits = commtraits[complete.cases(commtraits),c(2,4,6,7,9,10,11)]
 ggpairs(alltraits, colour = "biome", alpha = 0.5)
