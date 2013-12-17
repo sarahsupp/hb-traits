@@ -204,6 +204,11 @@ commtraits[,id] <- as.numeric(as.character(unlist(commtraits[,id])))
 ct = aggregate(. ~ comm, data = commtraits[,c(1,5:ncol(commtraits))], mean)
 ct2 = aggregate(. ~ species, data = commtraits[,c(3,5:ncol(commtraits))], mean)
 
+#---------------------------------------------
+#     Extract elevation data from raster
+#---------------------------------------------
+#TODO
+
 
 #---------------------------------------------
 #     Make PCA biplots of the traits by species
