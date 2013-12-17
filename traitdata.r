@@ -206,7 +206,7 @@ ct2 = aggregate(. ~ species, data = commtraits[,c(3,5:ncol(commtraits))], mean)
 
 
 #---------------------------------------------
-#     Make PCA biplots of the traits
+#     Make PCA biplots of the traits by species
 #---------------------------------------------
 
 rownames(ct2) = ct2$species
@@ -253,6 +253,56 @@ ggbiplot(trait_pc, groups=toCol, labels=rownames(trait_pc$x))
 
 #optionally add in circles covering normal distribution of groups
 ggbiplot(trait_pc, groups=toCol, labels=rownames(trait_pc$x), ellipse=TRUE)
+
+
+#---------------------------------------------
+#     Make PCA biplots of the traits by community
+#---------------------------------------------
+
+rownames(ct) = ct$comm
+ct=ct[,-1]
+
+#principal component traits and get euclidean distance matrix
+means <- apply(ct, 2, mean)
+
+#Standard the matrix to correct for different units
+mass <- ct$mass - means["mass"]/sd(ct$mass)
+billwidth <- ct$billwidth - means["billwidth"]/sd(ct$billwidth)
+expbilllength <- ct$expbilllength - means["expbilllength"]/sd(ct$expbilllength)
+totbilllength <- ct$totbilllength - means["totbilllength"]/sd(ct$totbilllength)
+billdepth <- ct$billdepth - means["billdepth"]/sd(ct$billdepth)
+wingchord <- ct$wingchord - means["wingchord"]/sd(ct$wingchord)
+wingwidth <- ct$wingwidth - means["wingwidth"]/sd(ct$wingwidth)
+winglength <- ct$winglength - means["winglength"]/sd(ct$winglength)
+wingaspectratio <- ct$wingaspectratio - means["wingaspectratio"]/sd(ct$wingaspectratio)
+wingform <- ct$wingform - means["wingform"]/sd(ct$wingform)
+wingarea <- ct$wingarea - means["wingarea"]/sd(ct$wingarea)
+wingload <- ct$wingload - means["wingload"]/sd(ct$wingload)
+wingtaper <- ct$wingtaper - means["wingtaper"]/sd(ct$wingtaper)
+taillength <- ct$taillength - means["taillength"]/sd(ct$taillength)
+tarsuslength <- ct$tarsuslength - means["tarsuslength"]/sd(ct$tarsuslength)
+footextend <- ct$footextend - means["footextend"]/sd(ct$footextend)
+naillength <- ct$naillength - means["naillength"]/sd(ct$naillength)
+
+z.scores <- data.frame(mass, billwidth, expbilllength, totbilllength, billdepth, 
+                       wingchord, wingwidth, winglength, wingaspectratio, wingform, wingarea, wingload,
+                       wingtaper, taillength, tarsuslength, footextend, naillength)
+rownames(z.scores) <- rownames(ct)
+
+trait_pc<-prcomp(ct)
+
+#Plot PCA - a bit ugly default
+biplot(trait_pc,cex=.75)
+
+#Use dev libary to ggplot PCA, color by clades
+#Try the ggplot biplot to color by clades (or later, behavioral roles)
+toCol<-sites[sites$Community %in% rownames(trait_pc$x),"Biome"]        # REPLACE WITH ELEVATION
+
+#Label species names and clades
+ggbiplot(trait_pc, groups=as.factor(toCol), labels=rownames(trait_pc$x))
+
+#optionally add in circles covering normal distribution of groups
+ggbiplot(trait_pc, groups=as.factor(toCol), labels=rownames(trait_pc$x), ellipse=TRUE)
 
 
 
