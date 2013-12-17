@@ -7,7 +7,7 @@ library(ggplot2)
 library(ggmap)
 library(vegan)
 #library(data.table)
-library(reshape)
+library(reshape2)
 
 #import the data
 wd = "C:\\Users\\sarah\\Dropbox\\ActiveResearchProjects\\HummingbirdTraits\\Data\\"
@@ -24,9 +24,9 @@ species = read.table("AouSaccHumList.txt", header = T, sep = ",")
 geo = read.table("GeoRefs.txt", header = T, sep = ",")
 sites = read.csv("Sites_BW.csv", header = T, sep = ",")
 sitexspp = read.csv("SiteXspp_BW.csv", header = T, sep = ",")
-  sitexspp= sitexspp[-c(1:3), ] #don't need the elevation data
+  sitexspp = sitexspp[-c(1:3), ] #don't need the elevation data
 
-#find and subset only Gary Stiles' data (probably the most trusted data)
+#find and subset only Gary Stiles' data (the most trusted data)
 Stiles = subset(refs, Title == "Gary Stiles Personal database")
 GS_ID = Stiles$RefID
 traits = subset(traits, ReferenceID == GS_ID)
@@ -63,7 +63,7 @@ sitexspp = sitexspp[which(sitexspp$use == 1),]
 #------------------------------------------
 ##map of Colombian Sites
 colombia = get_map(location = "Bogota", zoom = 7, maptype = "terrain", color = "bw")
-ggmap(colombia) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), data = colgeo)
+ggmap(colombia) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), size = 3, data = colgeo)
 
 colombiasites = ggmap(colombia) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), data = colsites, cex = 4)
 
@@ -79,7 +79,7 @@ sitemap = ggmap(bogota) + geom_point(aes(x = LongDecDeg, y = LatDecDeg, col = Bi
 sitemap2 = ggmap(bogota) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), size = 5, 
                                      data = bogosites) + element_blank() + scale_fill_brewer(palette=1)
 
-siterichness = ggplot(bogosites, aes(LongDecDeg, LatDecDeg)) + geom_point(aes(size = Richness))
+siterichness = ggplot(bogosites, aes(LongDecDeg, LatDecDeg)) + geom_point(aes(size = Richness)) + theme_bw()
 
 
 #------------------------------------------
@@ -160,11 +160,14 @@ sitenames = unique(bogosites$Community)
 sitexspp = sitexspp[which(sitexspp$X %in% sitenames),]
 
 #make a new dataframe for the traits in all the sites and species
-commtraits = data.frame(comm="name", biome="name", species="name", mass=0, billwidth=0, billlength=0, wingchord=0,
-                        wingarea=0, wingload=0, taillength=0, tarsuslength=0)
+commtraits = data.frame(comm="name", biome="name", species="name", clade = "name", 
+                        mass=0, billwidth=0, expbilllength=0, totbilllength=0, billdepth=0,
+                        wingchord=0, wingwidth=0, winglength=0, wingaspectratio=0, wingform=0, wingarea=0, wingload=0, wingtaper=0,
+                        taillength=0, tarsuslength=0, footextend=0, naillength=0)
   levels(commtraits$comm) = unique(sitexspp$X)
   levels(commtraits$biome) = as.character(c(1:8))
   levels(commtraits$species) = names(sitexspp[,2:134])
+  levels(commtraits$clade) = unique(species$Clade)
 counter = 1
 
 for (row in 1:nrow(sitexspp)){
@@ -174,31 +177,28 @@ for (row in 1:nrow(sitexspp)){
     dat = cbind(dat, biome)
   dat2=melt(dat, id = c("X", "biome"))
   dat3 = dat2[which(dat2$value == 1),]
-    names(dat3) = c("comm", "biome", "species", "presence")
+    dat3$clade = NA
+    names(dat3) = c("comm", "biome", "species", "presence", "clade")
   names = dat3$species
   for (n in 1:length(names)){
-    traitdat = traits[which(traits$spname == names[n]),c(6,7,8,9,17,15,18,20)]
+    spclade = species[which(species$spname_dot == names[n]),2]
+    traitdat = traits[which(traits$spname == names[n]),c(6,7,5,8,10,9,11,12,13,14,17,15,16,18,20,19,21)] #was only using these 8 traits: c(6,7,8,9,17,15,18,20)
     vals = c()
     for (t in 1:ncol(traitdat)){
       vals = append(vals, mean(traitdat[,t]))  #if a species appears more than once in traits, take the mean value
     }
-    vec = c(as.character(dat3$comm[1]), as.character(dat3$biome[1]), as.character(names[n]), vals)
+    vec = c(as.character(dat3$comm[1]), as.character(dat3$biome[1]), as.character(names[n]), 
+            as.character(spclade), vals)
     commtraits[counter,] = vec
     counter = counter+1
   }
 }
 
-commtraits$biome = as.numeric(commtraits$biome)
-commtraits$mass = as.numeric(commtraits$mass)
-commtraits$billwidth = as.numeric(commtraits$billwidth)
-commtraits$billlength = as.numeric(commtraits$billlength)
-commtraits$wingchord = as.numeric(commtraits$wingchord)
-commtraits$wingarea = as.numeric(commtraits$wingarea)
-commtraits$wingload = as.numeric(commtraits$wingload)
-commtraits$taillength = as.numeric(commtraits$taillength)
-commtraits$tarsuslength = as.numeric(commtraits$tarsuslength)
+#change measurements columns to numeric
+id <- c(2,5:ncol(commtraits)) 
+commtraits[,id] <- as.numeric(as.character(unlist(commtraits[,id])))
 
-ct = aggregate(. ~ comm, data = commtraits, mean)
+ct = aggregate(. ~ comm, data = commtraits[,c(1,5:ncol(commtraits))], mean)
 
 
 #------------------------------------------
