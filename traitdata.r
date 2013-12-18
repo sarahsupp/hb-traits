@@ -11,6 +11,11 @@ library(reshape2)
 library(grid)
 library(devtools)
 library(ggbiplot)
+library(sp)
+library(raster)
+library(dismo)
+library(maptools)
+
 
 #import the data
 wd = "C:\\Users\\sarah\\Dropbox\\ActiveResearchProjects\\HummingbirdTraits\\Data\\"
@@ -71,19 +76,35 @@ ggmap(colombia) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), size = 3, data 
 colombiasites = ggmap(colombia) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), data = colsites, cex = 4)
 
 #Just sites near Bogota
-bogosites = colsites[which(colsites$LongDecDeg < -73.5  & colsites$LongDecDeg > -75.25 & 
+bogosites = colsites[which(colsites$LongDecDeg < -73.5  & colsites$LongDecDeg > -74.75 & 
                              colsites$LatDecDeg > 3 & colsites$LatDecDeg < 5.5),]
 
 bogota = get_map(location = "Bogota", zoom = 8, maptype = "terrain", color = "bw")
 
-sitemap = ggmap(bogota) + geom_point(aes(x = LongDecDeg, y = LatDecDeg, col = Biome, size = Richness), 
-                           data = bogosites) + element_blank() + scale_fill_brewer(palette=1)
-
-sitemap2 = ggmap(bogota) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), size = 5, 
+sitemap = ggmap(bogota) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), size = 5, 
                                      data = bogosites) + element_blank() + scale_fill_brewer(palette=1)
 
 siterichness = ggplot(bogosites, aes(LongDecDeg, LatDecDeg)) + geom_point(aes(size = Richness)) + theme_bw()
 
+
+#------------------------------------------
+#         Extract elevation for the sites
+#------------------------------------------
+# make a SpatialPointsDataFrame
+bogosp<-SpatialPointsDataFrame(cbind(bogosites$LongDecDeg,bogosites$LatDecDeg),bogosites)
+
+#get elevation raster for Colombia from WorldClim data
+r_elev = raster("COL_msk_alt.grd")
+
+# clip elevation raster to extent of study
+exte = c(-75,-73,3.5,5.5)
+elev_sub <- crop(r_elev, exte)
+plot(elev_sub)
+  points(bogosp, pch=19)
+
+site_elev = extract(elev_sub, bogosp)
+
+bogosites = cbind(bogosites,site_elev)
 
 #------------------------------------------
 #           Plot the trait data
@@ -163,25 +184,24 @@ sitenames = unique(bogosites$Community)
 sitexspp = sitexspp[which(sitexspp$X %in% sitenames),]
 
 #make a new dataframe for the traits in all the sites and species
-commtraits = data.frame(comm="name", biome="name", species="name", clade = "name", 
+commtraits = data.frame(comm="name", elev=0, species="name", clade = "name", 
                         mass=0, billwidth=0, expbilllength=0, totbilllength=0, billdepth=0,
                         wingchord=0, wingwidth=0, winglength=0, wingaspectratio=0, wingform=0, wingarea=0, wingload=0, wingtaper=0,
                         taillength=0, tarsuslength=0, footextend=0, naillength=0)
   levels(commtraits$comm) = unique(sitexspp$X)
-  levels(commtraits$biome) = as.character(c(1:8))
   levels(commtraits$species) = names(sitexspp[,2:134])
   levels(commtraits$clade) = unique(species$Clade)
 counter = 1
 
 for (row in 1:nrow(sitexspp)){
   sitename = sitexspp[row,1]
-    biome = bogosites[which(bogosites$Community == sitename),8]
+    elev = bogosites[which(bogosites$Community == sitename),9]
   dat = sitexspp[row,c(1:134)]
-    dat = cbind(dat, biome)
-  dat2=melt(dat, id = c("X", "biome"))
+    dat = cbind(dat, elev)
+  dat2=melt(dat, id = c("X", "elev"))
   dat3 = dat2[which(dat2$value == 1),]
     dat3$clade = NA
-    names(dat3) = c("comm", "biome", "species", "presence", "clade")
+    names(dat3) = c("comm", "elev", "species", "presence", "clade")
   names = dat3$species
   for (n in 1:length(names)){
     spclade = species[which(species$spname_dot == names[n]),2]
@@ -190,7 +210,7 @@ for (row in 1:nrow(sitexspp)){
     for (t in 1:ncol(traitdat)){
       vals = append(vals, mean(traitdat[,t]))  #if a species appears more than once in traits, take the mean value
     }
-    vec = c(as.character(dat3$comm[1]), as.character(dat3$biome[1]), as.character(names[n]), 
+    vec = c(as.character(dat3$comm[1]), as.character(dat3$elev[1]), as.character(names[n]), 
             as.character(spclade), vals)
     commtraits[counter,] = vec
     counter = counter+1
@@ -203,11 +223,6 @@ commtraits[,id] <- as.numeric(as.character(unlist(commtraits[,id])))
 
 ct = aggregate(. ~ comm, data = commtraits[,c(1,5:ncol(commtraits))], mean)
 ct2 = aggregate(. ~ species, data = commtraits[,c(3,5:ncol(commtraits))], mean)
-
-#---------------------------------------------
-#     Extract elevation data from raster
-#---------------------------------------------
-#TODO
 
 
 #---------------------------------------------
@@ -299,16 +314,17 @@ trait_pc<-prcomp(ct)
 #Plot PCA - a bit ugly default
 biplot(trait_pc,cex=.75)
 
-#Use dev libary to ggplot PCA, color by clades
-#Try the ggplot biplot to color by clades (or later, behavioral roles)
-toCol<-sites[sites$Community %in% rownames(trait_pc$x),"Biome"]        # REPLACE WITH ELEVATION
+#Use dev libary to ggplot PCA, color by Elevation
+#Try the ggplot biplot to color by Elevation (or later, behavioral roles)
+toCol<-bogosites[bogosites$CommunityName %in% rownames(trait_pc$x),"site_elev"]  
+  toCol[toCol < 2000] <- 0
+  toCol[toCol > 2000] <- 1
 
 #Label species names and clades
 ggbiplot(trait_pc, groups=as.factor(toCol), labels=rownames(trait_pc$x))
 
 #optionally add in circles covering normal distribution of groups
 ggbiplot(trait_pc, groups=as.factor(toCol), labels=rownames(trait_pc$x), ellipse=TRUE)
-
 
 
 #------------------------------------------
@@ -327,7 +343,7 @@ for (i in seq_along(cols2plot)){
 
 
 ggplot(bogosites, aes(LongDecDeg, LatDecDeg)) + 
-  geom_point(aes(col=Biome, size = Richness)) + theme_bw() +
+  geom_point(aes(col=elev, size = Richness)) + theme_bw() +
   scale_colour_gradient(low = "blue", high = "indianred")
 
 cols2plot=c("ct$mass", "ct$billwidth", "ct$billlength", "ct$wingchord", "ct$wingarea", 
