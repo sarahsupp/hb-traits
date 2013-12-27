@@ -39,6 +39,11 @@ Stiles = subset(refs, Title == "Gary Stiles Personal database")
 GS_ID = Stiles$RefID
 traits = subset(traits, ReferenceID == GS_ID)
   traits[traits == 9999] <- NA
+  traits = traits[,c(1:21)]
+
+# aggregate for species, remove last column
+# traits <- aggregate(traits, list(traits$SpID), mean, na.rm = TRUE)
+# mon <- agg.morph[, -23]
 
 #Use only Colombian assemblages
 colgeo = subset(geo, Country == "Colombia") #369 sites
@@ -76,7 +81,7 @@ ggmap(colombia) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), size = 3, data 
 colombiasites = ggmap(colombia) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), data = colsites, cex = 4)
 
 #Just sites near Bogota
-bogosites = colsites[which(colsites$LongDecDeg < -73.5  & colsites$LongDecDeg > -74.75 & 
+bogosites = colsites[which(colsites$LongDecDeg < -73.5  & colsites$LongDecDeg > -75.25 & 
                              colsites$LatDecDeg > 3 & colsites$LatDecDeg < 5.5),]
 
 bogota = get_map(location = "Bogota", zoom = 8, maptype = "terrain", color = "bw")
@@ -97,7 +102,7 @@ bogosp<-SpatialPointsDataFrame(cbind(bogosites$LongDecDeg,bogosites$LatDecDeg),b
 r_elev = raster("COL_msk_alt.grd")
 
 # clip elevation raster to extent of study
-exte = c(-75,-73,3.5,5.5)
+exte = c(-75.25,-73,3.5,5.5)
 elev_sub <- crop(r_elev, exte)
 plot(elev_sub)
   points(bogosp, pch=19)
@@ -232,32 +237,19 @@ ct2 = aggregate(. ~ species, data = commtraits[,c(3,5:ncol(commtraits))], mean)
 rownames(ct2) = ct2$species
 ct2=ct2[,-1]
 
-#principal component traits and get euclidean distance matrix
-means <- apply(ct2, 2, mean)
+# Standard the matrix to correct for different units by subtracting the
+# means and dividing by sd
+zscore <- apply(ct2, 2, function(x) {
+  y <- (x - mean(x))/sd(x)
+  return(y)
+})
+rownames(zscore) <- rownames(ct2)
 
-#Standard the matrix to correct for different units
-mass <- ct2$mass - means["mass"]/sd(ct2$mass)
-billwidth <- ct2$billwidth - means["billwidth"]/sd(ct2$billwidth)
-expbilllength <- ct2$expbilllength - means["expbilllength"]/sd(ct2$expbilllength)
-totbilllength <- ct2$totbilllength - means["totbilllength"]/sd(ct2$totbilllength)
-billdepth <- ct2$billdepth - means["billdepth"]/sd(ct2$billdepth)
-wingchord <- ct2$wingchord - means["wingchord"]/sd(ct2$wingchord)
-wingwidth <- ct2$wingwidth - means["wingwidth"]/sd(ct2$wingwidth)
-winglength <- ct2$winglength - means["winglength"]/sd(ct2$winglength)
-wingaspectratio <- ct2$wingaspectratio - means["wingaspectratio"]/sd(ct2$wingaspectratio)
-wingform <- ct2$wingform - means["wingform"]/sd(ct2$wingform)
-wingarea <- ct2$wingarea - means["wingarea"]/sd(ct2$wingarea)
-wingload <- ct2$wingload - means["wingload"]/sd(ct2$wingload)
-wingtaper <- ct2$wingtaper - means["wingtaper"]/sd(ct2$wingtaper)
-taillength <- ct2$taillength - means["taillength"]/sd(ct2$taillength)
-tarsuslength <- ct2$tarsuslength - means["tarsuslength"]/sd(ct2$tarsuslength)
-footextend <- ct2$footextend - means["footextend"]/sd(ct2$footextend)
-naillength <- ct2$naillength - means["naillength"]/sd(ct2$naillength)
+# Take only reasonably uncorrelated traits
+trait_keep <- c("mass", "totbillength", "wingchord", "wingload", "tarsuslength", 
+                "taillength", "naillength")
 
-z.scores <- data.frame(mass, billwidth, expbilllength, totbilllength, billdepth, 
-                       wingchord, wingwidth, winglength, wingaspectratio, wingform, wingarea, wingload,
-                       wingtaper, taillength, tarsuslength, footextend, naillength)
-rownames(z.scores) <- rownames(ct2)
+zscore_sub <- zscore[, colnames(zscore) %in% trait_keep]
 
 trait_pc<-prcomp(ct2)
 
@@ -268,11 +260,12 @@ biplot(trait_pc,cex=.75)
 #Try the ggplot biplot to color by clades (or later, behavioral roles)
 toCol<-species[species$spname_dot %in% rownames(trait_pc$x),"Clade"]
 
-#Label species names and clades
-ggbiplot(trait_pc, groups=toCol, labels=rownames(trait_pc$x))
-
-#optionally add in circles covering normal distribution of groups
+#Label species names and clades, circles cover normal distribuiton of groups
 ggbiplot(trait_pc, groups=toCol, labels=rownames(trait_pc$x), ellipse=TRUE)
+
+#TODO: ADD info that would allow grouping of species by behavioral strategy
+#toCol<-species[species$spname_dot %in% rownames(trait_pc$x),"Role"]
+#ggbiplot(trait_pc, groups=toCol, labels=rownames(trait_pc$x), ellipse=TRUE)
 
 
 #---------------------------------------------
@@ -282,32 +275,19 @@ ggbiplot(trait_pc, groups=toCol, labels=rownames(trait_pc$x), ellipse=TRUE)
 rownames(ct) = ct$comm
 ct=ct[,-1]
 
-#principal component traits and get euclidean distance matrix
-means <- apply(ct, 2, mean)
+# Standard the matrix to correct for different units by subtracting the
+# means and dividing by sd
+zscore <- apply(ct, 2, function(x) {
+  y <- (x - mean(x))/sd(x)
+  return(y)
+})
+rownames(zscore) <- rownames(ct)
 
-#Standard the matrix to correct for different units
-mass <- ct$mass - means["mass"]/sd(ct$mass)
-billwidth <- ct$billwidth - means["billwidth"]/sd(ct$billwidth)
-expbilllength <- ct$expbilllength - means["expbilllength"]/sd(ct$expbilllength)
-totbilllength <- ct$totbilllength - means["totbilllength"]/sd(ct$totbilllength)
-billdepth <- ct$billdepth - means["billdepth"]/sd(ct$billdepth)
-wingchord <- ct$wingchord - means["wingchord"]/sd(ct$wingchord)
-wingwidth <- ct$wingwidth - means["wingwidth"]/sd(ct$wingwidth)
-winglength <- ct$winglength - means["winglength"]/sd(ct$winglength)
-wingaspectratio <- ct$wingaspectratio - means["wingaspectratio"]/sd(ct$wingaspectratio)
-wingform <- ct$wingform - means["wingform"]/sd(ct$wingform)
-wingarea <- ct$wingarea - means["wingarea"]/sd(ct$wingarea)
-wingload <- ct$wingload - means["wingload"]/sd(ct$wingload)
-wingtaper <- ct$wingtaper - means["wingtaper"]/sd(ct$wingtaper)
-taillength <- ct$taillength - means["taillength"]/sd(ct$taillength)
-tarsuslength <- ct$tarsuslength - means["tarsuslength"]/sd(ct$tarsuslength)
-footextend <- ct$footextend - means["footextend"]/sd(ct$footextend)
-naillength <- ct$naillength - means["naillength"]/sd(ct$naillength)
+# Take only reasonably uncorrelated traits
+trait_keep <- c("mass", "totbilllength", "wingchord", "wingload", "tarsuslength", 
+                "taillength", "naillength")
 
-z.scores <- data.frame(mass, billwidth, expbilllength, totbilllength, billdepth, 
-                       wingchord, wingwidth, winglength, wingaspectratio, wingform, wingarea, wingload,
-                       wingtaper, taillength, tarsuslength, footextend, naillength)
-rownames(z.scores) <- rownames(ct)
+zscore_sub <- zscore[, colnames(zscore) %in% trait_keep]
 
 trait_pc<-prcomp(ct)
 
@@ -320,10 +300,7 @@ toCol<-bogosites[bogosites$CommunityName %in% rownames(trait_pc$x),"site_elev"]
   toCol[toCol < 2000] <- 0
   toCol[toCol > 2000] <- 1
 
-#Label species names and clades
-ggbiplot(trait_pc, groups=as.factor(toCol), labels=rownames(trait_pc$x))
-
-#optionally add in circles covering normal distribution of groups
+#Label species names and clades, circles cover normal distribuiton of groups
 ggbiplot(trait_pc, groups=as.factor(toCol), labels=rownames(trait_pc$x), ellipse=TRUE)
 
 
