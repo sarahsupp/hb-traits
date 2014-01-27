@@ -112,6 +112,16 @@ site_elev = extract(elev_sub, bogosp)
 
 bogosites = cbind(bogosites,site_elev)
 
+#--------- plot sites
+par(mfrow=c(1,1))
+
+ggplot(data=bogosites, aes(LongDecDeg, site_elev)) + geom_point(aes(size=Richness)) + 
+  theme_classic() +  xlab("Longitude") + ylab("Elevation") +
+  scale_y_continuous(breaks = seq(0,3000, by=500), limits = c(0,3000)) +
+  scale_size(range = c(3, 5))
+theme(text = element_text(size=20))
+
+
 #------------------------------------------
 #           Plot the trait data
 #------------------------------------------
@@ -240,12 +250,14 @@ commtraits[,id] <- as.numeric(as.character(unlist(commtraits[,id])))
 
 
 ###------------- FOR each community
+pdf("BogotaPCA.pdf", 7, 10, paper = "letter", pointsize = 10)
 
 sites = unique(commtraits$comm)
 
 for (s in 1:length(sites)){
   sitedat = commtraits[which(commtraits$comm == sites[s]),c(3,6:ncol(commtraits))]
-
+  elev = unique(commtraits[which(commtraits$comm == sites[s]),2])
+  
   #make the species be row names
   rownames(sitedat) = sitedat$species
   sitedat=sitedat[,-1]
@@ -253,7 +265,8 @@ for (s in 1:length(sites)){
   #is there data for all species at the site?
   if(FALSE %in% complete.cases(sitedat)) {
     num = nrow(sitedat[!complete.cases(sitedat),])
-    print(paste("missing", num, "species data in", sites[s]))
+    tot = nrow(sitedat)
+    print(paste("missing", num, "of", tot, "species data in", sites[s], sep=" "))
   }
   sitedat = sitedat[complete.cases(sitedat),]
   
@@ -277,17 +290,12 @@ for (s in 1:length(sites)){
   groupCol = species[species$spname_dot %in% rownames(trait_pc$x),"Group"]
   
   #Label species names and clades, circles cover normal distribuiton of groups
-  print(ggbiplot(trait_pc, groups=cladeCol, labels=rownames(trait_pc$x)))
+  #print(ggbiplot(trait_pc, groups=cladeCol, labels=rownames(trait_pc$x)))
   print(ggbiplot(trait_pc, groups=groupCol, labels=rownames(trait_pc$x)) + 
-    ggtitle(sites[s]) +
-    theme_bw())
+    ggtitle(paste(sites[s], elev, sep = " ")) + theme_bw())
 }
 
-
-
-
-
-
+dev.off()
 
 ct = aggregate(. ~ comm, data = commtraits[,c(1,6:ncol(commtraits))], mean)
 ct2 = aggregate(. ~ species, data = commtraits[,c(3,6:ncol(commtraits))], mean)
