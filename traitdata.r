@@ -231,6 +231,9 @@ for (row in 1:nrow(sitexspp)){
   }
 }
 
+# change unknown species groups to NA
+species$Group[!species$Group %in% c("territorial", "trapliner", "generalist")]= NA
+
 #change measurements columns to numeric
 id <- c(2,5:ncol(commtraits)) 
 commtraits[,id] <- as.numeric(as.character(unlist(commtraits[,id])))
@@ -247,6 +250,13 @@ for (s in 1:length(sites)){
   rownames(sitedat) = sitedat$species
   sitedat=sitedat[,-1]
   
+  #is there data for all species at the site?
+  if(FALSE %in% complete.cases(sitedat)) {
+    num = nrow(sitedat[!complete.cases(sitedat),])
+    print(paste("missing", num, "species data in", sites[s]))
+  }
+  sitedat = sitedat[complete.cases(sitedat),]
+  
   # Standard the matrix to correct for different units by subtracting means and dividing by sd
   zscore = apply(sitedat, 2, function(x) {
     y = (x - mean(x))/sd(x)
@@ -261,16 +271,16 @@ for (s in 1:length(sites)){
   
   trait_pc<-prcomp(zscore_sub)
   
-  #Plot PCA - a bit ugly default
-  biplot(trait_pc,cex=.75)
-  
   #Use dev libary to ggplot PCA, color by clades
   #Try the ggplot biplot to color by clades (or later, behavioral roles)
-  toCol<-species[species$spname_dot %in% rownames(trait_pc$x),"Clade"]
+  cladeCol = species[species$spname_dot %in% rownames(trait_pc$x),"Clade"]
+  groupCol = species[species$spname_dot %in% rownames(trait_pc$x),"Group"]
   
   #Label species names and clades, circles cover normal distribuiton of groups
-  ggbiplot(trait_pc, groups=toCol, labels=rownames(trait_pc$x), ellipse=TRUE)
-  
+  print(ggbiplot(trait_pc, groups=cladeCol, labels=rownames(trait_pc$x)))
+  print(ggbiplot(trait_pc, groups=groupCol, labels=rownames(trait_pc$x)) + 
+    ggtitle(sites[s]) +
+    theme_bw())
 }
 
 
