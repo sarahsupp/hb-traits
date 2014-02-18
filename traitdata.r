@@ -28,7 +28,8 @@ setwd(wd)
 
 traits = read.table("Morphology.txt", header = T, sep = ",", na.strings=9999)
 refs = read.table("References.txt", header = T, sep = ",")
-species = read.table("AouSaccHumList.txt", header = T, sep = ",")
+#species = read.table("AouSaccHumList.txt", header = T, sep = ",")
+species = read.csv("species.csv", header=T, sep=",")
 geo = read.table("GeoRefs.txt", header = T, sep = ",")
 sites = read.csv("Sites_BW.csv", header = T, sep = ",")
 sitexspp = read.csv("SiteXspp_BW.csv", header = T, sep = ",")
@@ -87,7 +88,7 @@ bogosites = colsites[which(colsites$LongDecDeg < -73.5  & colsites$LongDecDeg > 
 bogota = get_map(location = "Bogota", zoom = 8, maptype = "terrain", color = "bw")
 
 sitemap = ggmap(bogota) + geom_point(aes(x = LongDecDeg, y = LatDecDeg), size = 5, 
-                                     data = bogosites) + element_blank() + scale_fill_brewer(palette=1)
+                                     data = bogosites) + element_blank()
 
 siterichness = ggplot(bogosites, aes(LongDecDeg, LatDecDeg)) + geom_point(aes(size = Richness)) + theme_bw()
 
@@ -110,6 +111,16 @@ plot(elev_sub)
 site_elev = extract(elev_sub, bogosp)
 
 bogosites = cbind(bogosites,site_elev)
+
+#--------- plot sites
+par(mfrow=c(1,1))
+
+ggplot(data=bogosites, aes(LongDecDeg, site_elev)) + geom_point(aes(size=Richness)) + 
+  theme_classic() +  xlab("Longitude") + ylab("Elevation") +
+  scale_y_continuous(breaks = seq(0,3000, by=500), limits = c(0,3000)) +
+  scale_size(range = c(3, 5))
+theme(text = element_text(size=20))
+
 
 #------------------------------------------
 #           Plot the trait data
@@ -189,13 +200,15 @@ sitenames = unique(bogosites$Community)
 sitexspp = sitexspp[which(sitexspp$X %in% sitenames),]
 
 #make a new dataframe for the traits in all the sites and species
-commtraits = data.frame(comm="name", elev=0, species="name", clade = "name", 
+commtraits = data.frame(comm="name", elev=0, species="name", clade = "name", group = "name",
                         mass=0, billwidth=0, expbilllength=0, totbilllength=0, billdepth=0,
-                        wingchord=0, wingwidth=0, winglength=0, wingaspectratio=0, wingform=0, wingarea=0, wingload=0, wingtaper=0,
+                        wingchord=0, wingwidth=0, winglength=0, wingaspectratio=0, wingform=0, 
+                        wingarea=0, wingload=0, wingtaper=0,
                         taillength=0, tarsuslength=0, footextend=0, naillength=0)
   levels(commtraits$comm) = unique(sitexspp$X)
   levels(commtraits$species) = names(sitexspp[,2:134])
   levels(commtraits$clade) = unique(species$Clade)
+  levels(commtraits$group) = c("territorial", "generalist", "trapliner")
 counter = 1
 
 for (row in 1:nrow(sitexspp)){
@@ -206,33 +219,91 @@ for (row in 1:nrow(sitexspp)){
   dat2=melt(dat, id = c("X", "elev"))
   dat3 = dat2[which(dat2$value == 1),]
     dat3$clade = NA
-    names(dat3) = c("comm", "elev", "species", "presence", "clade")
+    dat3$group = NA
+    names(dat3) = c("comm", "elev", "species", "presence", "clade", "group")
   names = dat3$species
   for (n in 1:length(names)){
-    spclade = species[which(species$spname_dot == names[n]),2]
+    spclade = species[which(species$spname_dot %in% names[n]),2]
+    spgroup = species[which(species$spname_dot %in% names[n]),7]
+    if(!spgroup %in% c("territorial", "trapliner", "generalist")){
+      spgroup = NA
+    }
     traitdat = traits[which(traits$spname == names[n]),c(6,7,5,8,10,9,11,12,13,14,17,15,16,18,20,19,21)] #was only using these 8 traits: c(6,7,8,9,17,15,18,20)
     vals = c()
+    #if a species appears more than once in traits, take the mean value
     for (t in 1:ncol(traitdat)){
-      vals = append(vals, mean(traitdat[,t]))  #if a species appears more than once in traits, take the mean value
+      vals = append(vals, mean(traitdat[,t])) 
     }
     vec = c(as.character(dat3$comm[1]), as.character(dat3$elev[1]), as.character(names[n]), 
-            as.character(spclade), vals)
+            as.character(spclade), as.character(spgroup),vals)
     commtraits[counter,] = vec
     counter = counter+1
   }
 }
 
+# change unknown species groups to NA
+species$Group[!species$Group %in% c("territorial", "trapliner", "generalist")]= NA
+
 #change measurements columns to numeric
 id <- c(2,5:ncol(commtraits)) 
 commtraits[,id] <- as.numeric(as.character(unlist(commtraits[,id])))
 
-ct = aggregate(. ~ comm, data = commtraits[,c(1,5:ncol(commtraits))], mean)
-ct2 = aggregate(. ~ species, data = commtraits[,c(3,5:ncol(commtraits))], mean)
+
+###------------- FOR each community
+pdf("BogotaPCA.pdf", 7, 10, paper = "letter", pointsize = 10)
+
+sites = unique(commtraits$comm)
+
+for (s in 1:length(sites)){
+  sitedat = commtraits[which(commtraits$comm == sites[s]),c(3,6:ncol(commtraits))]
+  elev = unique(commtraits[which(commtraits$comm == sites[s]),2])
+  
+  #make the species be row names
+  rownames(sitedat) = sitedat$species
+  sitedat=sitedat[,-1]
+  
+  #is there data for all species at the site?
+  if(FALSE %in% complete.cases(sitedat)) {
+    num = nrow(sitedat[!complete.cases(sitedat),])
+    tot = nrow(sitedat)
+    print(paste("missing", num, "of", tot, "species data in", sites[s], sep=" "))
+  }
+  sitedat = sitedat[complete.cases(sitedat),]
+  
+  # Standard the matrix to correct for different units by subtracting means and dividing by sd
+  zscore = apply(sitedat, 2, function(x) {
+    y = (x - mean(x))/sd(x)
+    return(y)
+  })
+  rownames(zscore) <- rownames(sitedat)
+  
+  # Take only reasonably uncorrelated traits
+  trait_keep <- c("mass", "totbilllength", "wingchord", "wingload", "tarsuslength", 
+                  "taillength", "naillength")
+  zscore_sub <- zscore[, colnames(zscore) %in% trait_keep]
+  
+  trait_pc<-prcomp(zscore_sub)
+  
+  #Use dev libary to ggplot PCA, color by clades
+  #Try the ggplot biplot to color by clades (or later, behavioral roles)
+  cladeCol = species[species$spname_dot %in% rownames(trait_pc$x),"Clade"]
+  groupCol = species[species$spname_dot %in% rownames(trait_pc$x),"Group"]
+  
+  #Label species names and clades, circles cover normal distribuiton of groups
+  #print(ggbiplot(trait_pc, groups=cladeCol, labels=rownames(trait_pc$x)))
+  print(ggbiplot(trait_pc, groups=groupCol, labels=rownames(trait_pc$x)) + 
+    ggtitle(paste(sites[s], elev, sep = " ")) + theme_bw())
+}
+
+dev.off()
+
+ct = aggregate(. ~ comm, data = commtraits[,c(1,6:ncol(commtraits))], mean)
+ct2 = aggregate(. ~ species, data = commtraits[,c(3,6:ncol(commtraits))], mean)
 
 
-#---------------------------------------------
+#-------------------------------------------------
 #     Make PCA biplots of the traits by species
-#---------------------------------------------
+#-------------------------------------------------
 
 rownames(ct2) = ct2$species
 ct2=ct2[,-1]
@@ -251,7 +322,8 @@ trait_keep <- c("mass", "totbillength", "wingchord", "wingload", "tarsuslength",
 
 zscore_sub <- zscore[, colnames(zscore) %in% trait_keep]
 
-trait_pc<-prcomp(ct2) #TODO, shouldn't this be on the zscores?
+
+trait_pc<-prcomp(zscore_sub)
 
 #Plot PCA - a bit ugly default
 biplot(trait_pc,cex=.75)
