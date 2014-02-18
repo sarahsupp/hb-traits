@@ -251,7 +251,7 @@ trait_keep <- c("mass", "totbillength", "wingchord", "wingload", "tarsuslength",
 
 zscore_sub <- zscore[, colnames(zscore) %in% trait_keep]
 
-trait_pc<-prcomp(ct2)
+trait_pc<-prcomp(ct2) #TODO, shouldn't this be on the zscores?
 
 #Plot PCA - a bit ugly default
 biplot(trait_pc,cex=.75)
