@@ -2,11 +2,11 @@
 # note that this dataset only includes information for male hummingbirds
 
 #library(lattice)
+#library(data.table)
 library(GGally)
 library(ggplot2)
 library(ggmap)
 library(vegan)
-#library(data.table)
 library(reshape2)
 library(grid)
 library(devtools)
@@ -15,10 +15,11 @@ library(sp)
 library(raster)
 library(dismo)
 library(maptools)
+library(RColorBrewer)
 
 
 #import the data
-wd = "C:\\Users\\sarah\\Dropbox\\ActiveResearchProjects\\HummingbirdTraits\\Data\\"
+wd = "C:/Users/sarah/Dropbox/ActiveResearchProjects/HummingbirdTraits/Data/"
 #wd = "/Users/sarah/Desktop/Dropbox/ActiveResearchProjects/HummingbirdTraits/data"
 setwd(wd)
 
@@ -105,12 +106,13 @@ r_elev = raster("COL_msk_alt.grd")
 # clip elevation raster to extent of study
 exte = c(-75.25,-73,3.5,5.5)
 elev_sub <- crop(r_elev, exte)
-plot(elev_sub)
+plot(elev_sub, col=rev(brewer.pal(9, "Blues")), xlab="Longitude", ylab="Latitude", main="Sites near Bogota, Colombia")
   points(bogosp, pch=19)
 
+#add elevatin to data frame
 site_elev = extract(elev_sub, bogosp)
-
 bogosites = cbind(bogosites,site_elev)
+
 
 #--------- plot sites
 par(mfrow=c(1,1))
@@ -118,65 +120,8 @@ par(mfrow=c(1,1))
 ggplot(data=bogosites, aes(LongDecDeg, site_elev)) + geom_point(aes(size=Richness)) + 
   theme_classic() +  xlab("Longitude") + ylab("Elevation") +
   scale_y_continuous(breaks = seq(0,3000, by=500), limits = c(0,3000)) +
-  scale_size(range = c(3, 5))
-theme(text = element_text(size=20))
+  scale_size(range = c(3, 5)) + theme(text = element_text(size=20))
 
-
-#------------------------------------------
-#           Plot the trait data
-#------------------------------------------
-##weight
-peso <- ggplot(traits, aes(x=Peso)) + geom_histogram(binwidth=0.5) + theme_bw() + 
-  labs(x="Weight (g)", y = "Count")
-
-##bill measurements
-billlen <- ggplot(traits, aes(x=ExpC)) + geom_histogram(binwidth = 1) + 
-  theme_bw() + labs(x="Exposed Bill Length (mm)", y="Count") 
-
-billwidth <- ggplot(traits, aes(x=Acom)) + geom_histogram(binwidth=0.5) + theme_bw() +
-  labs(x="Bill width(mm)", y = "count")
-
-billdepth <- ggplot(traits, aes(x=PrfP)) + geom_histogram(binwidth=0.25) + theme_bw() +
-  labs (x="Bill depth (mm)", y = "Count")
-
-#ignore TotC because it is well-predicted by ExpC, and ExpC is better predictor of flower use by hb
-
-##wing measurements
-wingchord <- ggplot(traits, aes(x=AlCdo)) + geom_histogram(binwidth=1) + theme_bw() +
-  labs(x="wing chord length (mm)", y = "Count")
-
-wingwidth <- ggplot(traits, aes(x=AlAnc))+ geom_histogram(binwidth=1) + theme_bw() +
-  labs(x="wing width (mm)", y = "Count") 
-
-winglength <- ggplot(traits, aes(x=AlLgo)) + geom_histogram(binwidth=1) + theme_bw() +
-  labs(x="wing length(mm)", y = "count")
-
-wingload <- ggplot(traits, aes(WiLo)) + geom_histogram(binwidth=0.05) + theme_bw() + 
-  labs(x="wing load", y="Count")
-
-wingratio <- ggplot(traits, aes(Rasp)) + geom_histogram(binwidth=0.25) + theme_bw() + 
-  labs(x="wing length / wing width", y="Count")
-
-wingtaper <- ggplot(traits, aes(Wtap))  + geom_histogram(binwidth=0.05) + theme_bw() +
-  labs(x="wing taper", y="Count")
-
-wingarea <- ggplot(traits, aes(AlArea)) + geom_histogram(binwidth=1) + theme_bw() +
-  labs(x="total wing area", y="count")
-
-##tail traits
-taillength <- ggplot(traits, aes(ColaL)) + geom_histogram(binwidth=1) + theme_bw() + 
-  labs(x="tail length(mm)", y="Count")
-
-##foot traits
-footwidth <- ggplot(traits, aes(PataE)) + geom_histogram(binwidth=0.5) + theme_bw()  +
-  labs(x="foot extension (mm)", y="Count") 
-
-tarslength <- ggplot(traits, aes(TarsL)) + geom_histogram(binwidth=0.5) + theme_bw() +
-  labs(x = "tarsus length (mm)", y="Count")
- 
-#pairs plot of all the data
-par(mfrow = c(2,3))
-pairs(traits[,5:21])
 
 #------------------------------------------
 #    Link species, locality and trait data
@@ -383,7 +328,7 @@ ggbiplot(trait_pc, groups=as.factor(toCol), labels=rownames(trait_pc$x), ellipse
 mass_by_communities <- ggplot(commtraits, aes(x=comm, y = mass)) + geom_boxplot() + 
   theme_bw() + theme(axis.text.x=element_text(angle=60, vjust=0.5))
 
-cols2plot=c("mass", "billwidth", "billlength", "wingchord", "wingarea", 
+cols2plot=c("mass", "billwidth", "totbilllength", "wingchord", "wingarea", 
             "wingload", "taillength", "tarsuslength")
 for (i in seq_along(cols2plot)){
   print(ggplot(commtraits, aes_string(x="comm", y = cols2plot[i])) + geom_boxplot(aes(fill="gray20")) + 
@@ -442,3 +387,62 @@ pairs(commtraits[,c(4:11)],cex = 1.5, pch = 19, bg = "gray20",
 #plot traits pairs, colored by biome ()
 alltraits = commtraits[complete.cases(commtraits),c(2,4,6,7,9,10,11)]
 ggpairs(alltraits, colour = "biome", alpha = 0.5)
+
+
+#-------------------------------------------- OLD AND EXTRA CODE
+
+#------------------------------------------
+#           Plot ALL the trait data
+#------------------------------------------
+##weight
+peso <- ggplot(traits, aes(x=Peso)) + geom_histogram(binwidth=0.5) + theme_bw() + 
+  labs(x="Weight (g)", y = "Count")
+
+##bill measurements
+billlen <- ggplot(traits, aes(x=ExpC)) + geom_histogram(binwidth = 1) + 
+  theme_bw() + labs(x="Exposed Bill Length (mm)", y="Count") 
+
+billwidth <- ggplot(traits, aes(x=Acom)) + geom_histogram(binwidth=0.5) + theme_bw() +
+  labs(x="Bill width(mm)", y = "count")
+
+billdepth <- ggplot(traits, aes(x=PrfP)) + geom_histogram(binwidth=0.25) + theme_bw() +
+  labs (x="Bill depth (mm)", y = "Count")
+
+#ignore TotC because it is well-predicted by ExpC, and ExpC is better predictor of flower use by hb
+
+##wing measurements
+wingchord <- ggplot(traits, aes(x=AlCdo)) + geom_histogram(binwidth=1) + theme_bw() +
+  labs(x="wing chord length (mm)", y = "Count")
+
+wingwidth <- ggplot(traits, aes(x=AlAnc))+ geom_histogram(binwidth=1) + theme_bw() +
+  labs(x="wing width (mm)", y = "Count") 
+
+winglength <- ggplot(traits, aes(x=AlLgo)) + geom_histogram(binwidth=1) + theme_bw() +
+  labs(x="wing length(mm)", y = "count")
+
+wingload <- ggplot(traits, aes(WiLo)) + geom_histogram(binwidth=0.05) + theme_bw() + 
+  labs(x="wing load", y="Count")
+
+wingratio <- ggplot(traits, aes(Rasp)) + geom_histogram(binwidth=0.25) + theme_bw() + 
+  labs(x="wing length / wing width", y="Count")
+
+wingtaper <- ggplot(traits, aes(Wtap))  + geom_histogram(binwidth=0.05) + theme_bw() +
+  labs(x="wing taper", y="Count")
+
+wingarea <- ggplot(traits, aes(AlArea)) + geom_histogram(binwidth=1) + theme_bw() +
+  labs(x="total wing area", y="count")
+
+##tail traits
+taillength <- ggplot(traits, aes(ColaL)) + geom_histogram(binwidth=1) + theme_bw() + 
+  labs(x="tail length(mm)", y="Count")
+
+##foot traits
+footwidth <- ggplot(traits, aes(PataE)) + geom_histogram(binwidth=0.5) + theme_bw()  +
+  labs(x="foot extension (mm)", y="Count") 
+
+tarslength <- ggplot(traits, aes(TarsL)) + geom_histogram(binwidth=0.5) + theme_bw() +
+  labs(x = "tarsus length (mm)", y="Count")
+
+#pairs plot of all the data
+par(mfrow = c(2,3))
+pairs(traits[,5:21])
